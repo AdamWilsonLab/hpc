@@ -18,17 +18,20 @@
 #'
 #' module("--help") # show available sub-commands and switches
 #'
-#' module("load samtools") # loads the module "samtools"
-#' system("which samtools") # check that samtools is loaded in the environment
+#' module("load netcdf") # loads the module "netcdf"
+#' system("which netcdf") # check that samtools is loaded in the environment
 #'
 #' module("list") # list loaded modules
 #'
-#' module("unload samtools") # unload the samtools module
-#'
-#' module("load samtools/1.0") # loads a specific version of the module "samtools"
-#' system("which samtools") # check that the correct samtools is loaded in the environment
-#'
+#'# Load multiple modules at the same time
+#' module("load lmod/6.0.1 StdEnv intel/15.0 hdf5/1.8.15p1 netcdf python/anaconda R grass nco cdo")
+#' # if you still have trouble loading a package due to a missing shared object, you can try to use dyn.load directly.
+#' # For example, you can load libpng with a particular path as follows:
+#' dyn.load("/util/academic/libpng/1.6.17/lib/libpng16.so.16")
+#' dyn.load("/util/academic/grass/gdal-2.2.0/lib/libgdal.so.20")
+
 #' @export
+
 module <- function( Arguments ){
 
   # check if arguments are corrext type
@@ -37,20 +40,24 @@ module <- function( Arguments ){
   }
 
   # check if module environment has been initialized
-  if( is.na(Sys.getenv('MODULESHOME', unset = NA)) ){
-    stop("Environment variable MODULESHOME missing!\n",
+  if( is.na(Sys.getenv('LMOD_CMD', unset = NA)) ){
+    stop("Environment variable LMOD_CMD missing!\n",
          "  Run moduleInit() to initialize module envionment" )
   }
 
-  moduleCmd <- file.path(Sys.getenv('MODULESHOME'),"bin/modulecmd")
+  moduleCmd <- file.path(Sys.getenv('LMOD_CMD'))
   # check if modulecmd exists
   if(!file.exists( moduleCmd) ){
     stop(moduleCmd," missing!\n",
          "  Module environment not properly set up!" )
   }
 
+
   # use the python interface
-  pythonCmds <- system(paste(moduleCmd,"python",Arguments),intern=T)
+  pythonCmds <- system(paste(moduleCmd," python",Arguments),intern=T)
+  pythonCmds <-
+
+    pythonCmds<- gsub("\\\"","\'",pythonCmds)
 
 
   # Check if all python commands are recognizable
@@ -60,6 +67,8 @@ module <- function( Arguments ){
   if( !all(validPythonCmd) ){
     stop("modulecmd returned unknown command(s):\n", paste(pythonCmds[!validPythonCmd],collapse = "\n"))
   }
+
+  grepl("environ\\[",pythonCmds)
 
   # convert python commands to R commands
   RCmds <- sub("os\\.chdir\\('([^']*)'\\)","setwd(dir = '\\1')",pythonCmds,perl=T)
